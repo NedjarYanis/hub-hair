@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
-import { ArrowLeft, Check, Clock, Calendar as CalendarIcon } from 'lucide-native';
+import { ArrowLeft, Check, Clock, Calendar as CalendarIcon } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { collection, addDoc, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
