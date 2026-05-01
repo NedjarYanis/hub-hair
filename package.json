@@ -1,12 +1,15 @@
 {
-  "name": "barberglassapp",
+  "name": "hub-hair",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo/AppEntry.js",
+  "homepage": "https://NedjarYanis.github.io/hub-hair",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "predeploy": "npx expo export",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^7.15.11",
@@ -25,7 +28,6 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "gh-pages": "^6.3.0",
     "typescript": "~5.9.2"
   },
   "private": true
