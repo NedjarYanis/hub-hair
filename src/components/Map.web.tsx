@@ -2,7 +2,6 @@ import React, { useEffect, memo, useRef, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Barber } from '../types';
 
-// La coquille de l'iframe est stabilisée
 const Iframe = React.forwardRef((props: any, ref) => React.createElement('iframe', { ...props, ref }));
 
 interface MapProps {
@@ -10,12 +9,13 @@ interface MapProps {
   centerLat?: number;
   centerLng?: number;
   onMarkerPress?: (barberId: string) => void;
+  // NOUVEAU : On accepte la position exacte de l'utilisateur
+  userLocation?: { latitude: number; longitude: number } | null; 
 }
 
-export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress }: MapProps) => {
+export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress, userLocation }: MapProps) => {
   const iframeRef = useRef<any>(null);
 
-  // 1. Écoute les clics sur les marqueurs pour mettre à jour l'interface React
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleMessage = (event: MessageEvent) => {
@@ -30,20 +30,17 @@ export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress }: MapPr
     return () => window.removeEventListener('message', handleMessage);
   }, [onMarkerPress]);
 
-  // 2. LE MOTEUR DE ZOOM : Quand l'utilisateur fait une recherche, on envoie l'ordre à la carte de "voler" vers l'adresse
   useEffect(() => {
     if (centerLat && centerLng && iframeRef.current && iframeRef.current.contentWindow) {
-      // On demande un zoom de niveau 16 (très précis, niveau rue)
       iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ type: 'FLY_TO', lat: centerLat, lng: centerLng, zoom: 16 }),
+        JSON.stringify({ type: 'FLY_TO', lat: centerLat, lng: centerLng, zoom: 15 }),
         '*'
       );
     }
   }, [centerLat, centerLng]);
 
-  // 3. LA CARTE (Mémorisée pour éviter tout flash blanc pendant qu'on tape au clavier)
+  // On ajoute userLocation dans les dépendances pour que la carte se mette à jour quand le GPS te trouve
   const htmlContent = useMemo(() => {
-    // Orléans par défaut au premier chargement
     const initialLat = 47.9029;
     const initialLng = 1.9088;
 
@@ -59,7 +56,6 @@ export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress }: MapPr
               #map { width: 100vw; height: 100vh; }
               .leaflet-popup-content-wrapper { border-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
               
-              /* Design des points sur la carte (Google Maps Blue) */
               .uber-dot {
                   background-color: #1A73E8; 
                   border: 3px solid #FFF;
@@ -70,6 +66,32 @@ export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress }: MapPr
                   margin-top: -8px !important;
                   margin-left: -8px !important;
               }
+
+              /* NOUVEAU : Le design du point bleu utilisateur avec pulsation radar */
+              .user-loc-container { position: relative; }
+              .user-loc-dot {
+                  width: 18px; height: 18px;
+                  background-color: #4285F4;
+                  border: 3px solid white;
+                  border-radius: 50%;
+                  position: absolute;
+                  top: -9px; left: -9px;
+                  box-shadow: 0 0 6px rgba(0,0,0,0.4);
+                  z-index: 2;
+              }
+              .user-loc-pulse {
+                  width: 46px; height: 46px;
+                  background-color: rgba(66, 133, 244, 0.4);
+                  border-radius: 50%;
+                  position: absolute;
+                  top: -23px; left: -23px;
+                  animation: pulse 2s infinite ease-out;
+                  z-index: 1;
+              }
+              @keyframes pulse {
+                  0% { transform: scale(0.3); opacity: 1; }
+                  100% { transform: scale(1.2); opacity: 0; }
+              }
           </style>
       </head>
       <body>
@@ -77,14 +99,23 @@ export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress }: MapPr
           <script>
               const map = L.map('map', { zoomControl: false }).setView([${initialLat}, ${initialLng}], 13);
               
-              // Les tuiles officielles de Google Maps
               L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
                 maxZoom: 20,
                 attribution: '© Google'
               }).addTo(map);
 
               const barbers = ${JSON.stringify(barbers)};
+              const userLoc = ${JSON.stringify(userLocation || null)};
+
+              // 1. On dessine d'abord le point bleu du GPS s'il existe
+              if (userLoc) {
+                  const userHtml = '<div class="user-loc-container"><div class="user-loc-pulse"></div><div class="user-loc-dot"></div></div>';
+                  const userIcon = L.divIcon({ className: '', html: userHtml });
+                  // zIndexOffset: 1000 permet au point bleu d'être TOUJOURS au-dessus des autres marqueurs
+                  L.marker([userLoc.latitude, userLoc.longitude], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
+              }
               
+              // 2. On dessine les salons de coiffure
               barbers.forEach(b => {
                   const customIcon = L.divIcon({ className: 'uber-dot' });
                   const marker = L.marker([b.latitude, b.longitude], { icon: customIcon }).addTo(map);
@@ -101,16 +132,11 @@ export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress }: MapPr
                   });
               });
 
-              // ÉCOUTEUR SECRET : Reçoit les ordres de React pour faire "voler" la caméra
               window.addEventListener('message', function(event) {
                   try {
                       const data = JSON.parse(event.data);
                       if (data.type === 'FLY_TO') {
-                          // L'animation de zoom ultra fluide !
-                          map.flyTo([data.lat, data.lng], data.zoom, {
-                              animate: true,
-                              duration: 1.5
-                          });
+                          map.flyTo([data.lat, data.lng], data.zoom, { animate: true, duration: 1.5 });
                       }
                   } catch(e) {}
               });
@@ -118,16 +144,11 @@ export const Map = memo(({ barbers, centerLat, centerLng, onMarkerPress }: MapPr
       </body>
       </html>
     `;
-  }, [barbers]); // Le code HTML ne se recalcule que si la liste des barbiers change
+  }, [barbers, userLocation]);
 
   return (
     <View style={styles.mapContainer}>
-      <Iframe 
-        ref={iframeRef} 
-        srcDoc={htmlContent} 
-        style={styles.iframe as any} 
-        allowFullScreen={false} 
-      />
+      <Iframe ref={iframeRef} srcDoc={htmlContent} style={styles.iframe as any} allowFullScreen={false} />
     </View>
   );
 });
