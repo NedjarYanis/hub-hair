@@ -1,12 +1,17 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { GlassContainer } from '../components/GlassContainer';
+import { useAuth } from '../contexts/AuthContext'; // IMPORT DU CONTEXTE
 
 export const HomeScreen = () => {
+  const { user } = useAuth(); // RÉCUPÉRATION DU VRAI UTILISATEUR
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.greeting}>Bonjour, Yanis 👋</Text>
+      {/* AFFICHAGE DYNAMIQUE DU NOM 👇 */}
+      <Text style={styles.greeting}>Bonjour, {user?.displayName || 'Client'} 👋</Text>
       <Text style={styles.heroTitle}>Prêt pour un nouveau look ?</Text>
+  
 
       {/* Promotions / Cards */}
       <GlassContainer style={styles.promoCard}>

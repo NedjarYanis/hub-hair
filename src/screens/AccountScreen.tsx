@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { User, Settings, CreditCard, Bell, ChevronRight, Database } from 'lucide-react-native';
+import { User as UserIcon, Settings, CreditCard, Bell, ChevronRight, Database, LogOut } from 'lucide-react-native';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { ORLEANS_BARBERS } from '../data/orleansBarbers';
+import { useAuth } from '../contexts/AuthContext';
 
 const MenuOption = ({ icon: Icon, label, color = "#FFF" }: any) => (
   <TouchableOpacity style={styles.option}>
@@ -18,20 +19,18 @@ const MenuOption = ({ icon: Icon, label, color = "#FFF" }: any) => (
 );
 
 export const AccountScreen = () => {
+  const { user, logout } = useAuth(); // VRAIES DONNÉES ET FONCTION LOGOUT
   const [isSeeding, setIsSeeding] = useState(false);
 
-  // Fonction d'administration pour injecter les données dans Firebase
   const seedDatabase = async () => {
     setIsSeeding(true);
     try {
       for (const barber of ORLEANS_BARBERS) {
-        // Crée ou écrase le document dans la collection "barbers" avec l'ID spécifié
         await setDoc(doc(db, "barbers", barber.id), barber);
       }
-      alert("✅ Base de données Firestore mise à jour avec 20 barbiers d'Orléans !");
+      alert("Base de données Firestore mise à jour !");
     } catch (error) {
-      console.error("Erreur lors de l'injection :", error);
-      alert("❌ Erreur de connexion à Firebase.");
+      console.error("Erreur d'injection :", error);
     } finally {
       setIsSeeding(false);
     }
@@ -39,33 +38,31 @@ export const AccountScreen = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* PROFIL DYNAMIQUE */}
       <View style={styles.profileHeader}>
-        <View style={styles.avatar}><User color="#000" size={30} /></View>
-        <Text style={styles.userName}>Yanis Nedjar</Text>
-        <Text style={styles.userEmail}>yanis@startup.tech</Text>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{user?.displayName?.charAt(0).toUpperCase() || 'U'}</Text>
+        </View>
+        <Text style={styles.userName}>{user?.displayName || 'Utilisateur'}</Text>
+        <Text style={styles.userEmail}>{user?.email}</Text>
       </View>
 
       <View style={styles.section}>
-        <MenuOption icon={User} label="Informations personnelles" />
+        <MenuOption icon={UserIcon} label="Informations personnelles" />
         <MenuOption icon={CreditCard} label="Paiements" />
         <MenuOption icon={Bell} label="Notifications" />
         <MenuOption icon={Settings} label="Paramètres" />
       </View>
 
-      {/* BOUTON D'ADMINISTRATION SECRET */}
-      <TouchableOpacity 
-        style={styles.adminBtn} 
-        onPress={seedDatabase}
-        disabled={isSeeding}
-      >
-        {isSeeding ? <ActivityIndicator color="#FFF" /> : <Database color="#FFF" size={20} style={{marginRight: 10}} />}
-        <Text style={styles.adminBtnText}>
-          {isSeeding ? "Injection en cours..." : "Injecter 20 Barbiers (Firebase)"}
-        </Text>
+      {/* BOUTON DE DÉCONNEXION FONCTIONNEL */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+        <LogOut color="#EF4135" size={20} style={{ marginRight: 10 }} />
+        <Text style={styles.logoutBtnText}>Se déconnecter</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.barberMode}>
-        <Text style={styles.barberText}>Devenir Coiffeur</Text>
+      <TouchableOpacity style={styles.adminBtn} onPress={seedDatabase} disabled={isSeeding}>
+        {isSeeding ? <ActivityIndicator color="#FFF" /> : <Database color="#FFF" size={20} style={{marginRight: 10}} />}
+        <Text style={styles.adminBtnText}>Injecter 20 Barbiers (Admin)</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -75,7 +72,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0A0A' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 100 },
   profileHeader: { alignItems: 'center', marginBottom: 40 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1F3A93', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  avatarText: { color: '#FFF', fontSize: 32, fontWeight: '800' },
   userName: { color: '#FFF', fontSize: 24, fontWeight: '700' },
   userEmail: { color: '#555', fontSize: 14, marginTop: 4 },
   section: { backgroundColor: '#1C1C1E', borderRadius: 24, paddingVertical: 8, overflow: 'hidden' },
@@ -83,8 +81,8 @@ const styles = StyleSheet.create({
   optionLeft: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   optionLabel: { color: '#EEE', fontSize: 16, fontWeight: '500' },
-  adminBtn: { marginTop: 30, backgroundColor: '#78281F', height: 56, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  adminBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-  barberMode: { marginTop: 15, backgroundColor: '#1F3A93', height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  barberText: { color: '#FFF', fontWeight: '700', fontSize: 16 }
+  logoutBtn: { marginTop: 30, backgroundColor: 'rgba(239, 65, 53, 0.1)', height: 56, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(239, 65, 53, 0.3)' },
+  logoutBtnText: { color: '#EF4135', fontWeight: '700', fontSize: 16 },
+  adminBtn: { marginTop: 15, backgroundColor: '#1C1C1E', height: 56, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#333' },
+  adminBtnText: { color: '#888', fontWeight: '700', fontSize: 15 }
 });

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { ArrowLeft, Clock, Calendar as CalendarIcon, Check } from 'lucide-react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { ArrowLeft, Check } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
-// Fausses données pour les prestations (Dans une app finale, ça viendrait de Firebase)
+// Fausses données pour les prestations (Dans une app finale, ça viendrait aussi de Firebase)
 const SERVICES = [
   { id: 's1', name: 'Coupe Classique', price: 25, duration: 30 },
   { id: 's2', name: 'Dégradé à blanc (Fade)', price: 28, duration: 45 },
@@ -16,36 +18,85 @@ const TIME_SLOTS = ['09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30
 export const BarberProfileScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
-  const { barberName } = route.params;
+  const { barberId, barberName } = route.params;
 
-  const [selectedService, setSelectedService] = useState(SERVICES[0].id);
-  const [selectedDate, setSelectedDate] = useState(0); // 0 = Aujourd'hui
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-
-  // Générateur des 7 prochains jours
-  const getNext7Days = () => {
+  // Générateur des 7 prochains jours avec de VRAIES dates formatées (YYYY-MM-DD)
+  const dates = useMemo(() => {
     const days = [];
     const weekDays = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
-      days.push({ id: i, dayName: weekDays[d.getDay()], dayNum: d.getDate() });
+      const fullDate = d.toISOString().split('T')[0]; // Ex: "2023-10-25"
+      days.push({ id: fullDate, dayName: weekDays[d.getDay()], dayNum: d.getDate() });
     }
     return days;
-  };
-  const dates = getNext7Days();
+  }, []);
+
+  const [selectedService, setSelectedService] = useState(SERVICES[0].id);
+  const [selectedDate, setSelectedDate] = useState(dates[0].id);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  
+  // États pour Firebase
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [isFetchingSlots, setIsFetchingSlots] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+
+  // Étape 1 : Récupérer les créneaux déjà réservés dans Firebase à chaque changement de date
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      setIsFetchingSlots(true);
+      setSelectedTime(null); // On réinitialise l'heure choisie quand on change de jour
+      try {
+        const q = query(
+          collection(db, 'bookings'), 
+          where('barberId', '==', barberId),
+          where('date', '==', selectedDate)
+        );
+        const snapshot = await getDocs(q);
+        const taken = snapshot.docs.map(doc => doc.data().time);
+        setBookedSlots(taken);
+      } catch (error) {
+        console.error("Erreur de récupération des créneaux :", error);
+      } finally {
+        setIsFetchingSlots(false);
+      }
+    };
+
+    fetchBookedSlots();
+  }, [selectedDate, barberId]);
 
   const totalAmount = SERVICES.find(s => s.id === selectedService)?.price || 0;
 
-  const handleBooking = () => {
+  // Étape 2 : Envoyer la réservation dans Firebase
+  const handleBooking = async () => {
     if (!selectedTime) return alert('Veuillez choisir un créneau horaire.');
-    alert(`🎉 Réservation confirmée chez ${barberName} pour ${totalAmount}€ !`);
-    navigation.goBack(); // Retour à la carte après paiement
+    setIsBooking(true);
+    
+    try {
+      await addDoc(collection(db, 'bookings'), {
+        barberId,
+        barberName,
+        date: selectedDate,
+        time: selectedTime,
+        serviceId: selectedService,
+        price: totalAmount,
+        createdAt: new Date().toISOString(),
+        status: 'confirmé'
+      });
+      
+      alert(`🎉 Réservation confirmée chez ${barberName} le ${selectedDate} à ${selectedTime} !`);
+      navigation.goBack();
+    } catch (error) {
+      console.error("Erreur lors de la réservation :", error);
+      alert('Une erreur est survenue lors de la réservation.');
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft color="#FFF" size={24} />
@@ -97,18 +148,35 @@ export const BarberProfileScreen = () => {
           })}
         </ScrollView>
 
-        {/* CRÉNEAUX HORAIRES */}
-        <Text style={styles.sectionTitle}>3. Créneau horaire</Text>
+        {/* CRÉNEAUX HORAIRES CONNECTÉS */}
+        <View style={styles.timeHeader}>
+          <Text style={styles.sectionTitle}>3. Créneau horaire</Text>
+          {isFetchingSlots && <ActivityIndicator color="#4285F4" size="small" />}
+        </View>
+        
         <View style={styles.timeGrid}>
           {TIME_SLOTS.map((time) => {
             const isSelected = selectedTime === time;
+            const isTaken = bookedSlots.includes(time); // Magie : on vérifie si Firebase a dit que c'était pris
+
             return (
               <TouchableOpacity 
                 key={time} 
-                style={[styles.timeBox, isSelected && styles.timeBoxActive]}
+                disabled={isTaken}
+                style={[
+                  styles.timeBox, 
+                  isSelected && styles.timeBoxActive,
+                  isTaken && styles.timeBoxTaken // Style grisé si réservé
+                ]}
                 onPress={() => setSelectedTime(time)}
               >
-                <Text style={[styles.timeText, isSelected && styles.textActive]}>{time}</Text>
+                <Text style={[
+                  styles.timeText, 
+                  isSelected && styles.textActive,
+                  isTaken && styles.timeTextTaken // Texte barré
+                ]}>
+                  {time}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -122,10 +190,15 @@ export const BarberProfileScreen = () => {
           <Text style={styles.footerPrice}>{totalAmount}€</Text>
         </View>
         <TouchableOpacity 
-          style={[styles.bookBtn, !selectedTime && styles.bookBtnDisabled]} 
+          style={[styles.bookBtn, (!selectedTime || isBooking) && styles.bookBtnDisabled]} 
           onPress={handleBooking}
+          disabled={!selectedTime || isBooking}
         >
-          <Text style={styles.bookBtnText}>Confirmer</Text>
+          {isBooking ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.bookBtnText}>Confirmer</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -156,11 +229,14 @@ const styles = StyleSheet.create({
   dayName: { color: '#888', fontSize: 14, fontWeight: '600', marginBottom: 8 },
   dayNum: { color: '#FFF', fontSize: 24, fontWeight: '800' },
   
+  timeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   timeBox: { width: '31%', height: 50, borderRadius: 12, backgroundColor: '#1C1C1E', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
   timeBoxActive: { backgroundColor: '#FFF' },
+  timeBoxTaken: { backgroundColor: '#0A0A0A', borderColor: '#222', opacity: 0.5 },
   timeText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   textActive: { color: '#000' },
+  timeTextTaken: { color: '#444', textDecorationLine: 'line-through' },
 
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#141414', flexDirection: 'row', padding: 20, paddingBottom: 40, borderTopWidth: 1, borderTopColor: '#222', alignItems: 'center', justifyContent: 'space-between' },
   footerInfo: { flex: 1 },
