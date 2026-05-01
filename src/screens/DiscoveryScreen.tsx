@@ -1,26 +1,99 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Keyboard } from 'react-native';
 import { Map } from '../components/Map';
 import { GlassContainer } from '../components/GlassContainer';
-import { Search, Filter, Star, Navigation } from 'lucide-react-native';
+import { Search, Filter, Star, Navigation, MapPin } from 'lucide-react-native';
 import { useBarbers } from '../hooks/useBarbers';
 import { MotiView } from 'moti';
+import { Barber } from '../types';
 
 export const DiscoveryScreen = () => {
+  // Récupération des données depuis Firebase via le hook
   const { barbers, userLoc, loading } = useBarbers();
+  
+  // États de l'interface
   const [selectedFilter, setFilter] = useState('Tous');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mapCenter, setMapCenter] = useState<{lat: number, lng: number} | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [filteredBarbers, setFilteredBarbers] = useState<Barber[]>([]);
+  const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
+
+  // Initialisation et Filtrage
+  useEffect(() => {
+    let result = barbers;
+    if (selectedFilter === 'Salons') result = barbers.filter(b => !b.isMobile);
+    if (selectedFilter === 'À domicile') result = barbers.filter(b => b.isMobile);
+    if (selectedFilter === '⭐ 4.5+') result = barbers.filter(b => b.rating && b.rating >= 4.5);
+    
+    setFilteredBarbers(result);
+    // Sélectionne le premier barbier de la liste pour l'affichage en bas
+    if (result.length > 0) setSelectedBarber(result[0]);
+  }, [barbers, selectedFilter]);
+
+  // Fonction de Géocodage (Recherche d'adresse via OpenStreetMap)
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    Keyboard.dismiss();
+    setIsSearching(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        setMapCenter({
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon)
+        });
+      } else {
+        alert("Adresse introuvable.");
+      }
+    } catch (error) {
+      console.error("Erreur de géocodage:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
+    // LA FAMEUSE BOÎTE PARENTE QUI MANQUAIT EST ICI 👇
     <View style={styles.container}>
-      <Map barbers={barbers} userLoc={userLoc} />
       
+      {/* 1. La Carte avec la connexion des clics */}
+      <Map 
+        barbers={filteredBarbers} 
+        centerLat={mapCenter?.lat || userLoc?.latitude} 
+        centerLng={mapCenter?.lng || userLoc?.longitude} 
+        onMarkerPress={(id) => {
+          // Quand la carte nous donne l'ID, on cherche le barbier et on met à jour la carte du bas !
+          const clickedBarber = filteredBarbers.find(b => b.id === id);
+          if (clickedBarber) {
+            setSelectedBarber(clickedBarber);
+          }
+        }}
+      />
+      
+      {/* 2. Barre de Recherche Flottante */}
       <View style={styles.topContainer}>
         <View style={styles.searchBar}>
-          <Search color="#888" size={18} />
-          <TextInput placeholder="Orléans, France" placeholderTextColor="#888" style={styles.input} />
-          <Filter color="#000" size={18} />
+          {isSearching ? (
+            <ActivityIndicator color="#FFF" size="small" style={{marginRight: 10}} />
+          ) : (
+            <Search color="#888" size={18} style={{marginRight: 10}} />
+          )}
+          <TextInput 
+            placeholder="Orléans, Saran..." 
+            placeholderTextColor="#888" 
+            style={styles.input} 
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+          />
+          <TouchableOpacity onPress={handleSearch}>
+            <MapPin color={searchQuery ? "#FFF" : "#555"} size={18} />
+          </TouchableOpacity>
         </View>
 
+        {/* 3. Filtres Scrollables */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters}>
           {['Tous', 'Salons', 'À domicile', '⭐ 4.5+'].map((f) => (
             <TouchableOpacity 
@@ -34,25 +107,38 @@ export const DiscoveryScreen = () => {
         </ScrollView>
       </View>
 
+      {/* 4. Carte Info du Bas (Bottom Sheet) */}
       <View style={styles.bottomOverlay}>
         <GlassContainer>
           <MotiView 
-            from={{ opacity: 0, scale: 0.9 }} 
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'timing', duration: 500 }}
+            from={{ opacity: 0, translateY: 20 }} 
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400 }}
+            key={selectedBarber?.id || 'empty'}
           >
-            <View style={styles.barberPreview}>
-              <View style={styles.textInfo}>
-                <Text style={styles.barberName}>The Heritage Barbershop</Text>
-                <View style={styles.ratingRow}>
-                  <Star color="#F1C40F" size={14} fill="#F1C40F" />
-                  <Text style={styles.ratingText}>4.9 (124 avis) • 1.2 km</Text>
+            {loading ? (
+              <View style={styles.centerBox}><ActivityIndicator color="#FFF" /></View>
+            ) : selectedBarber ? (
+              <View style={styles.barberPreview}>
+                <View style={styles.textInfo}>
+                  <Text style={styles.barberName} numberOfLines={1}>{selectedBarber.name}</Text>
+                  <View style={styles.ratingRow}>
+                    <Star color="#F1C40F" size={14} fill="#F1C40F" />
+                    <Text style={styles.ratingText}>
+                      {selectedBarber.rating || "N/A"} • {selectedBarber.price ? `${selectedBarber.price}€` : "Prix sur devis"}
+                    </Text>
+                  </View>
+                  <Text style={styles.typeText}>
+                    {selectedBarber.isMobile ? "🚗 Se déplace chez vous" : "💈 Salon fixe"}
+                  </Text>
                 </View>
+                <TouchableOpacity style={styles.goBtn}>
+                  <Navigation color="#FFF" size={20} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.goBtn}>
-                <Navigation color="#FFF" size={24} />
-              </TouchableOpacity>
-            </View>
+            ) : (
+              <View style={styles.centerBox}><Text style={styles.noData}>Aucun barbier trouvé ici.</Text></View>
+            )}
           </MotiView>
         </GlassContainer>
       </View>
@@ -63,18 +149,39 @@ export const DiscoveryScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   topContainer: { position: 'absolute', top: 50, left: 0, right: 0, zIndex: 10, paddingHorizontal: 20 },
-  searchBar: { height: 50, backgroundColor: '#FFF', borderRadius: 25, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, marginBottom: 15 },
-  input: { flex: 1, marginHorizontal: 10, fontWeight: '600', fontSize: 14 },
+  searchBar: { 
+    height: 50, 
+    backgroundColor: 'rgba(20, 20, 20, 0.85)', 
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 25, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 15, 
+    marginBottom: 15 
+  },
+  input: { flex: 1, color: '#FFF', fontWeight: '500', fontSize: 15, marginRight: 10 },
   filters: { flexDirection: 'row' },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', marginRight: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  activeChip: { backgroundColor: '#FFF' },
-  filterText: { color: '#FFF', fontWeight: '600', fontSize: 13 },
+  filterChip: { 
+    paddingHorizontal: 18, 
+    paddingVertical: 10, 
+    borderRadius: 20, 
+    backgroundColor: 'rgba(20,20,20,0.8)', 
+    marginRight: 10, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.1)' 
+  },
+  activeChip: { backgroundColor: '#FFF', borderColor: '#FFF' },
+  filterText: { color: '#AAA', fontWeight: '600', fontSize: 13 },
   activeFilterText: { color: '#000' },
   bottomOverlay: { position: 'absolute', bottom: 105, left: 16, right: 16 },
   barberPreview: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  textInfo: { flex: 1 },
-  barberName: { color: '#FFF', fontSize: 18, fontWeight: '700' },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  ratingText: { color: '#888', fontSize: 13, marginLeft: 6 },
-  goBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#1F3A93', justifyContent: 'center', alignItems: 'center' }
+  textInfo: { flex: 1, marginRight: 15 },
+  barberName: { color: '#FFF', fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 4 },
+  ratingText: { color: '#E0E0E0', fontSize: 14, marginLeft: 6, fontWeight: '500' },
+  typeText: { color: '#888', fontSize: 13 },
+  goBtn: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#1F3A93', justifyContent: 'center', alignItems: 'center', shadowColor: '#1F3A93', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: {width: 0, height: 4} },
+  centerBox: { height: 60, justifyContent: 'center', alignItems: 'center' },
+  noData: { color: '#888', fontSize: 15 }
 });
