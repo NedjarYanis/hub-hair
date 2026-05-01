@@ -1,37 +1,52 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
-import * as Location from 'expo-location';
+import React, { useRef, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, TextInput } from 'react-native';
+import { Search, MapPin, Navigation, User } from 'lucide-react-native';
 import { GlassContainer } from '../components/GlassContainer';
 import { Map } from '../components/Map';
-import { Barber } from '../types';
-
-const MOCK_BARBERS: Barber[] = [
-  { id: '1', name: 'Barber Street', isMobile: false, latitude: 48.8566, longitude: 2.3522 },
-  { id: '2', name: 'Julien (À domicile)', isMobile: true, latitude: 48.8606, longitude: 2.3322 },
-];
 
 export const HomeScreen: React.FC = () => {
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
-    })();
-  }, []);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   return (
     <View style={styles.container}>
-      
-      {/* Le composant Map choisira tout seul Map.tsx (mobile) ou Map.web.tsx (web) */}
-      <Map barbers={MOCK_BARBERS} />
+      <Map barbers={[]} />
 
-      <View style={styles.overlay}>
-        <GlassContainer style={styles.searchCard}>
-          <Text style={styles.title}>Trouver un coiffeur</Text>
-          <Text style={styles.subtitle}>Salons ou à domicile, autour de vous.</Text>
+      {/* Barre de recherche flottante style Uber */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.profileBtn}>
+          <User color="#FFF" size={20} />
+        </TouchableOpacity>
+        <View style={styles.searchBar}>
+          <Search color="#888" size={18} style={{marginRight: 10}} />
+          <TextInput 
+            placeholder="Où allez-vous ?" 
+            placeholderTextColor="#888" 
+            style={styles.searchInput}
+          />
+        </View>
+      </View>
+
+      {/* Section de sélection rapide */}
+      <View style={styles.bottomOverlay}>
+        <GlassContainer>
+          <View style={styles.handle} />
+          <Text style={styles.heroTitle}>Prêt pour votre coupe ?</Text>
+          
+          <TouchableOpacity style={styles.optionRow}>
+            <View style={styles.iconContainer}>
+              <MapPin color="#FFF" size={20} />
+            </View>
+            <View style={styles.textColumn}>
+              <Text style={styles.optionTitle}>Salon Barber Street</Text>
+              <Text style={styles.optionSub}>4.9 km • Ouvert</Text>
+            </View>
+            <Text style={styles.priceText}>25€</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.primaryBtn}>
+            <Navigation color="#000" size={20} style={{marginRight: 8}} />
+            <Text style={styles.primaryBtnText}>Réserver maintenant</Text>
+          </TouchableOpacity>
         </GlassContainer>
       </View>
     </View>
@@ -39,26 +54,86 @@ export const HomeScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  overlay: {
+  container: { flex: 1, backgroundColor: '#000' },
+  header: {
     position: 'absolute',
-    bottom: 20,
+    top: 50,
     left: 20,
     right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
   },
-  searchCard: {
-    padding: 20,
+  profileBtn: {
+    width: 45,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(10, 10, 10, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+  searchBar: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#FFF',
+    borderRadius: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-  }
+  searchInput: { flex: 1, fontWeight: '500', fontSize: 15 },
+  bottomOverlay: {
+    position: 'absolute',
+    bottom: 100,
+    left: 12,
+    right: 12,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  heroTitle: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 24,
+    letterSpacing: -0.5,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#1F3A93',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  textColumn: { flex: 1 },
+  optionTitle: { color: '#FFF', fontWeight: '600', fontSize: 16 },
+  optionSub: { color: '#888', fontSize: 13, marginTop: 2 },
+  priceText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  primaryBtn: {
+    backgroundColor: '#FFF',
+    height: 56,
+    borderRadius: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryBtnText: { color: '#000', fontWeight: '700', fontSize: 16 },
 });

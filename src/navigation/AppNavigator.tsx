@@ -1,17 +1,12 @@
 import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import { Home, Scissors, Clock, User } from 'lucide-react-native';
+import { Home, Compass, Calendar, Settings } from 'lucide-react-native';
 import { HomeScreen } from '../screens/HomeScreen';
 import { RootTabParamList } from '../types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
-
-// Composants temporaires complets pour garantir l'intégrité du code
-const ServicesScreen = () => <View style={styles.center}><Text>Liste des Prestations</Text></View>;
-const ActivityScreen = () => <View style={styles.center}><Text>Historique des Rendez-vous</Text></View>;
-const AccountScreen = () => <View style={styles.center}><Text>Profil & Mode Coiffeur</Text></View>;
 
 export const AppNavigator = () => {
   return (
@@ -19,36 +14,34 @@ export const AppNavigator = () => {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarActiveTintColor: '#0055A4', // Bleu Barber
-          tabBarInactiveTintColor: 'gray',
+          tabBarActiveTintColor: '#FFF',
+          tabBarInactiveTintColor: '#444',
           tabBarStyle: {
-            backgroundColor: '#ffffff',
-            borderTopWidth: 1,
-            borderTopColor: '#f0f0f0',
+            backgroundColor: 'rgba(10, 10, 10, 0.8)',
+            position: 'absolute',
+            borderTopWidth: 0,
+            elevation: 0,
+            height: 70,
+            borderTopLeftRadius: 30,
+            borderTopRightRadius: 30,
+            paddingBottom: Platform.OS === 'ios' ? 20 : 10,
           },
-          tabBarIcon: ({ color, size }) => {
+          tabBarShowLabel: false,
+          tabBarIcon: ({ color, focused }) => {
+            const size = focused ? 24 : 22;
             if (route.name === 'Accueil') return <Home color={color} size={size} />;
-            if (route.name === 'Services') return <Scissors color={color} size={size} />;
-            if (route.name === 'Activite') return <Clock color={color} size={size} />;
-            if (route.name === 'Compte') return <User color={color} size={size} />;
+            if (route.name === 'Services') return <Compass color={color} size={size} />;
+            if (route.name === 'Activite') return <Calendar color={color} size={size} />;
+            if (route.name === 'Compte') return <Settings color={color} size={size} />;
             return null;
           },
         })}
       >
         <Tab.Screen name="Accueil" component={HomeScreen} />
-        <Tab.Screen name="Services" component={ServicesScreen} />
-        <Tab.Screen name="Activite" component={ActivityScreen} />
-        <Tab.Screen name="Compte" component={AccountScreen} />
+        <Tab.Screen name="Services" component={HomeScreen} />
+        <Tab.Screen name="Activite" component={HomeScreen} />
+        <Tab.Screen name="Compte" component={HomeScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA'
-  }
-});

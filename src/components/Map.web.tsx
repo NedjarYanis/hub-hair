@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, Dimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Barber } from '../types';
 
 interface MapProps {
@@ -7,61 +7,42 @@ interface MapProps {
 }
 
 export const Map: React.FC<MapProps> = ({ barbers }) => {
+  // Création de l'élément iframe pour le Web
+  const Iframe = (props: any) => React.createElement('iframe', props);
+  
+  // Coordonnées de Paris pour l'exemple
+  const mapUrl = "https://www.openstreetmap.org/export/embed.html?bbox=2.3122,48.8366,2.3922,48.8766&layer=mapnik";
+
   return (
     <View style={styles.mapContainer}>
-      <Text style={styles.text}>🗺️ Carte interactive</Text>
-      <Text style={styles.subtext}>(Vue désactivée sur la version Web - Disponible sur l'App)</Text>
-      
-      {barbers.map((barber) => (
-        <View key={barber.id} style={styles.barberItem}>
-          <Text style={styles.barberName}>{barber.name}</Text>
-          <Text>{barber.isMobile ? "🚗 À domicile" : "💈 Salon fixe"}</Text>
-        </View>
-      ))}
+      <Iframe 
+        src={mapUrl}
+        // "as any" permet d'utiliser des propriétés CSS Web pures
+        style={styles.iframe as any}
+        allowFullScreen={false}
+      />
+      {/* Voile sombre pour l'esthétique Dark Mode */}
+      <View style={styles.darkOverlay} pointerEvents="none" />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   mapContainer: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: Dimensions.get('window').height / 3, // Laisse de la place pour le composant Glassmorphism
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0A0A0A',
   },
-  text: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+  iframe: {
+    width: '100%',
+    height: '100%',
+    // On utilise les noms de propriétés CSS standard
+    // @ts-ignore
+    border: 'none', 
+    // @ts-ignore
+    filter: 'invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%)',
   },
-  subtext: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  barberItem: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 12,
-    marginVertical: 6,
-    width: '80%',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0055A4', // Touche Barber
-  },
-  barberName: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 4,
+  darkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 10, 10, 0.2)',
   }
 });

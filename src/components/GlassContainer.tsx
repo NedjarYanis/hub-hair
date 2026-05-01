@@ -1,52 +1,45 @@
-import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, Animated, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 
 interface GlassContainerProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: any;
 }
 
 export const GlassContainer: React.FC<GlassContainerProps> = ({ children, style }) => {
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacityAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true })
+    ]).start();
+  }, []);
+
   return (
-    <View style={[styles.wrapper, style]}>
-      {/* Ligne Barber Shop : Bleu, Blanc, Rouge */}
-      <View style={styles.barberAccentContainer}>
-        <View style={[styles.stripe, { backgroundColor: '#0055A4' }]} />
-        <View style={[styles.stripe, { backgroundColor: '#FFFFFF' }]} />
-        <View style={[styles.stripe, { backgroundColor: '#EF4135' }]} />
-      </View>
-      
-      <BlurView intensity={50} tint="light" style={styles.glassEffect}>
-        <View style={styles.innerContent}>
-          {children}
-        </View>
+    <Animated.View style={[styles.wrapper, style, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+      <BlurView intensity={95} tint="dark" style={styles.blur}>
+        {children}
       </BlurView>
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   wrapper: {
-    borderRadius: 20,
+    borderRadius: 32,
     overflow: 'hidden',
+    backgroundColor: 'rgba(20, 20, 20, 0.7)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
   },
-  barberAccentContainer: {
-    flexDirection: 'row',
-    height: 4,
-    width: '100%',
-  },
-  stripe: {
-    flex: 1,
-    height: '100%',
-  },
-  glassEffect: {
-    flex: 1,
-  },
-  innerContent: {
-    padding: 16,
+  blur: {
+    padding: 24,
   }
 });
