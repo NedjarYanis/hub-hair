@@ -1,17 +1,29 @@
 import React from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { Home, Search, Calendar, User } from 'lucide-react-native';
 
-// Importations désormais valides
 import { HomeScreen } from '../screens/HomeScreen';
 import { DiscoveryScreen } from '../screens/DiscoveryScreen';
+import { BarberProfileScreen } from '../screens/BarberProfileScreen';
 import { ActivityScreen } from '../screens/ActivityScreen';
 import { AccountScreen } from '../screens/AccountScreen';
-import { RootTabParamList } from '../types';
+import { RootTabParamList, DiscoveryStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createNativeStackNavigator<DiscoveryStackParamList>();
+
+// NOUVEAU : On crée un "Sous-réseau" pour l'onglet Recherche
+const DiscoveryStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack.Screen name="DiscoveryMain" component={DiscoveryScreen} />
+      <Stack.Screen name="BarberProfile" component={BarberProfileScreen} />
+    </Stack.Navigator>
+  );
+};
 
 export const AppNavigator = () => {
   return (
@@ -44,7 +56,8 @@ export const AppNavigator = () => {
         })}
       >
         <Tab.Screen name="Accueil" component={HomeScreen} />
-        <Tab.Screen name="Services" component={DiscoveryScreen} />
+        {/* On remplace DiscoveryScreen par notre nouveau Stack ici */}
+        <Tab.Screen name="Services" component={DiscoveryStack} />
         <Tab.Screen name="Activite" component={ActivityScreen} />
         <Tab.Screen name="Compte" component={AccountScreen} />
       </Tab.Navigator>

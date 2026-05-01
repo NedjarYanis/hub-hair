@@ -10,7 +10,15 @@ export interface Barber {
   isMobile: boolean;
   latitude: number;
   longitude: number;
+  rating?: number; // Désormais officiel
+  price?: number;  // Désormais officiel
 }
+
+// Déclaration de la navigation interne de l'onglet Recherche
+export type DiscoveryStackParamList = {
+  DiscoveryMain: undefined;
+  BarberProfile: { barberId: string; barberName: string };
+};
 
 export type RootTabParamList = {
   Accueil: undefined;
