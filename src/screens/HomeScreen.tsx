@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, Dimensions } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { StyleSheet, View, Text } from 'react-native';
 import * as Location from 'expo-location';
 import { GlassContainer } from '../components/GlassContainer';
+import { Map } from '../components/Map';
 import { Barber } from '../types';
 
 const MOCK_BARBERS: Barber[] = [
@@ -24,26 +24,9 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <MapView 
-        style={styles.map}
-        initialRegion={{
-          latitude: 48.8566,
-          longitude: 2.3522,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-        showsUserLocation={true}
-      >
-        {MOCK_BARBERS.map((barber) => (
-          <Marker
-            key={barber.id}
-            coordinate={{ latitude: barber.latitude, longitude: barber.longitude }}
-            title={barber.name}
-            description={barber.isMobile ? "Coiffeur mobile" : "Salon fixe"}
-            pinColor={barber.isMobile ? '#EF4135' : '#0055A4'}
-          />
-        ))}
-      </MapView>
+      
+      {/* Le composant Map choisira tout seul Map.tsx (mobile) ou Map.web.tsx (web) */}
+      <Map barbers={MOCK_BARBERS} />
 
       <View style={styles.overlay}>
         <GlassContainer style={styles.searchCard}>
@@ -58,10 +41,6 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  map: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
   },
   overlay: {
     position: 'absolute',

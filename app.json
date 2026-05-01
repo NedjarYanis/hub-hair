@@ -3,6 +3,9 @@
     "name": "BarberGlassApp",
     "slug": "BarberGlassApp",
     "version": "1.0.0",
+    "experiments": {
+      "baseUrl": "/hub-hair"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
