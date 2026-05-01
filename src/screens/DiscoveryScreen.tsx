@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Keyboard } from 'react-native';
 import { Map } from '../components/Map';
 import { GlassContainer } from '../components/GlassContainer';
@@ -37,8 +37,14 @@ export const DiscoveryScreen = () => {
     Keyboard.dismiss();
     setIsSearching(true);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+      // Astuce : On force la recherche dans le Loiret pour éviter la gare de Paris
+      const query = searchQuery.toLowerCase().includes("orléans") || searchQuery.toLowerCase().includes("orleans")
+        ? searchQuery + ", Loiret, France"
+        : searchQuery;
+
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
       const data = await response.json();
+      
       if (data && data.length > 0) {
         setMapCenter({
           lat: parseFloat(data[0].lat),
@@ -54,22 +60,23 @@ export const DiscoveryScreen = () => {
     }
   };
 
+  // Mémorisation de la fonction de clic pour empêcher la carte de clignoter
+  const handleMarkerPress = useCallback((id: string) => {
+    const clickedBarber = filteredBarbers.find(b => b.id === id);
+    if (clickedBarber) {
+      setSelectedBarber(clickedBarber);
+    }
+  }, [filteredBarbers]);
+
   return (
-    // LA FAMEUSE BOÎTE PARENTE QUI MANQUAIT EST ICI 👇
     <View style={styles.container}>
       
-      {/* 1. La Carte avec la connexion des clics */}
+      {/* 1. La Carte avec la connexion des clics sans rechargement */}
       <Map 
         barbers={filteredBarbers} 
         centerLat={mapCenter?.lat || userLoc?.latitude} 
         centerLng={mapCenter?.lng || userLoc?.longitude} 
-        onMarkerPress={(id) => {
-          // Quand la carte nous donne l'ID, on cherche le barbier et on met à jour la carte du bas !
-          const clickedBarber = filteredBarbers.find(b => b.id === id);
-          if (clickedBarber) {
-            setSelectedBarber(clickedBarber);
-          }
-        }}
+        onMarkerPress={handleMarkerPress}
       />
       
       {/* 2. Barre de Recherche Flottante */}
@@ -117,7 +124,9 @@ export const DiscoveryScreen = () => {
             key={selectedBarber?.id || 'empty'}
           >
             {loading ? (
-              <View style={styles.centerBox}><ActivityIndicator color="#FFF" /></View>
+              <View style={styles.centerBox}>
+                <ActivityIndicator color="#FFF" />
+              </View>
             ) : selectedBarber ? (
               <View style={styles.barberPreview}>
                 <View style={styles.textInfo}>
@@ -137,7 +146,9 @@ export const DiscoveryScreen = () => {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.centerBox}><Text style={styles.noData}>Aucun barbier trouvé ici.</Text></View>
+              <View style={styles.centerBox}>
+                <Text style={styles.noData}>Aucun barbier trouvé ici.</Text>
+              </View>
             )}
           </MotiView>
         </GlassContainer>
