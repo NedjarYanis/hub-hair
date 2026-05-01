@@ -18,48 +18,26 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<DiscoveryStackParamList>();
 const RootStack = createNativeStackNavigator();
 
+// On garde ces stacks simples
 const DiscoveryStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="DiscoveryMain" component={DiscoveryScreen} />
     <Stack.Screen name="BarberProfile" component={BarberProfileScreen} />
   </Stack.Navigator>
 );
 
-const MainTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: '#FFF',
-      tabBarInactiveTintColor: '#444',
-      tabBarStyle: {
-        backgroundColor: 'rgba(10, 10, 10, 0.98)',
-        position: 'absolute',
-        borderTopWidth: 0,
-        height: Platform.OS === 'ios' ? 88 : 75,
-        paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-        paddingTop: 12,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-      },
-      tabBarShowLabel: false,
-      tabBarIcon: ({ color, focused }) => {
-        const size = focused ? 28 : 24;
-        if (route.name === 'Accueil') return <Home color={color} size={size} />;
-        if (route.name === 'Services') return <Search color={color} size={size} />;
-        if (route.name === 'Activite') return <Calendar color={color} size={size} />;
-        if (route.name === 'Compte') return <UserIcon color={color} size={size} />;
-        return null;
-      },
-    })}
-  >
-    <Tab.Screen name="Accueil" component={HomeScreen} />
-    <Tab.Screen name="Services" component={DiscoveryStack} />
-    <Tab.Screen name="Activite" component={ActivityScreen} />
-    <Tab.Screen name="Compte" component={AccountScreen} />
-  </Tab.Navigator>
-);
+export const AppNavigator = () => {
+  return (
+    <AuthProvider>
+      <NavigationContainer>
+        <AuthWrapper />
+      </NavigationContainer>
+    </AuthProvider>
+  );
+};
 
-const NavigationLogic = () => {
+// Ce composant est le seul qui décide quoi afficher
+const AuthWrapper = () => {
   const { user, loadingAuth } = useAuth();
 
   if (loadingAuth) {
@@ -75,16 +53,42 @@ const NavigationLogic = () => {
       {!user ? (
         <RootStack.Screen name="Login" component={LoginScreen} />
       ) : (
-        <RootStack.Screen name="Main" component={MainTabs} />
+        <RootStack.Screen name="Main">
+          {() => (
+            <Tab.Navigator
+              screenOptions={({ route }) => ({
+                headerShown: false,
+                tabBarActiveTintColor: '#FFF',
+                tabBarInactiveTintColor: '#444',
+                tabBarStyle: {
+                  backgroundColor: 'rgba(10, 10, 10, 0.98)',
+                  position: 'absolute',
+                  borderTopWidth: 0,
+                  height: Platform.OS === 'ios' ? 88 : 75,
+                  paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+                  paddingTop: 12,
+                  borderTopLeftRadius: 32,
+                  borderTopRightRadius: 32,
+                },
+                tabBarShowLabel: false,
+                tabBarIcon: ({ color, focused }) => {
+                  const size = focused ? 28 : 24;
+                  if (route.name === 'Accueil') return <Home color={color} size={size} />;
+                  if (route.name === 'Services') return <Search color={color} size={size} />;
+                  if (route.name === 'Activite') return <Calendar color={color} size={size} />;
+                  if (route.name === 'Compte') return <UserIcon color={color} size={size} />;
+                  return null;
+                },
+              })}
+            >
+              <Tab.Screen name="Accueil" component={HomeScreen} />
+              <Tab.Screen name="Services" component={DiscoveryStack} />
+              <Tab.Screen name="Activite" component={ActivityScreen} />
+              <Tab.Screen name="Compte" component={AccountScreen} />
+            </Tab.Navigator>
+          )}
+        </RootStack.Screen>
       )}
     </RootStack.Navigator>
   );
 };
-
-export const AppNavigator = () => (
-  <AuthProvider>
-    <NavigationContainer>
-      <NavigationLogic />
-    </NavigationContainer>
-  </AuthProvider>
-);

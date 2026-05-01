@@ -26,11 +26,21 @@ export const AccountScreen = () => {
     setIsSeeding(true);
     try {
       for (const barber of ORLEANS_BARBERS) {
-        await setDoc(doc(db, "barbers", barber.id), barber);
+        // On ajoute des services spécifiques à chaque barbier au moment de l'injection
+        const barberData = {
+          ...barber,
+          services: [
+            { id: 's1', name: 'Coupe Homme', price: barber.price || 20, duration: 30 },
+            { id: 's2', name: 'Barbe', price: 15, duration: 20 },
+            { id: 's3', name: 'Pack Complet', price: (barber.price || 20) + 10, duration: 50 }
+          ],
+          businessHours: { start: "09:00", end: "19:00" } // Horaires réels
+        };
+        await setDoc(doc(db, "barbers", barber.id), barberData);
       }
-      alert("Base de données Firestore mise à jour !");
+      alert("Base de données mise à jour avec services réels !");
     } catch (error) {
-      console.error("Erreur d'injection :", error);
+      console.error(error);
     } finally {
       setIsSeeding(false);
     }
