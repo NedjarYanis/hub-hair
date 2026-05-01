@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Keyboard } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Keyboard, Linking, Platform } from 'react-native';
 import { Map } from '../components/Map';
 import { GlassContainer } from '../components/GlassContainer';
 import { Search, Filter, Star, Navigation, MapPin } from 'lucide-react-native';
@@ -8,10 +8,8 @@ import { MotiView } from 'moti';
 import { Barber } from '../types';
 
 export const DiscoveryScreen = () => {
-  // Récupération des données depuis Firebase via le hook
   const { barbers, userLoc, loading } = useBarbers();
   
-  // États de l'interface
   const [selectedFilter, setFilter] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [mapCenter, setMapCenter] = useState<{lat: number, lng: number} | null>(null);
@@ -19,7 +17,6 @@ export const DiscoveryScreen = () => {
   const [filteredBarbers, setFilteredBarbers] = useState<Barber[]>([]);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
 
-  // Initialisation et Filtrage
   useEffect(() => {
     let result = barbers;
     if (selectedFilter === 'Salons') result = barbers.filter(b => !b.isMobile);
@@ -27,17 +24,14 @@ export const DiscoveryScreen = () => {
     if (selectedFilter === '⭐ 4.5+') result = barbers.filter(b => b.rating && b.rating >= 4.5);
     
     setFilteredBarbers(result);
-    // Sélectionne le premier barbier de la liste pour l'affichage en bas
     if (result.length > 0) setSelectedBarber(result[0]);
   }, [barbers, selectedFilter]);
 
-  // Fonction de Géocodage (Recherche d'adresse via OpenStreetMap)
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     Keyboard.dismiss();
     setIsSearching(true);
     try {
-      // Astuce : On force la recherche dans le Loiret pour éviter la gare de Paris
       const query = searchQuery.toLowerCase().includes("orléans") || searchQuery.toLowerCase().includes("orleans")
         ? searchQuery + ", Loiret, France"
         : searchQuery;
@@ -60,7 +54,6 @@ export const DiscoveryScreen = () => {
     }
   };
 
-  // Mémorisation de la fonction de clic pour empêcher la carte de clignoter
   const handleMarkerPress = useCallback((id: string) => {
     const clickedBarber = filteredBarbers.find(b => b.id === id);
     if (clickedBarber) {
@@ -68,10 +61,39 @@ export const DiscoveryScreen = () => {
     }
   }, [filteredBarbers]);
 
+  // NOUVEAU : Le moteur de redirection GPS "World-Class"
+  const handleNavigation = () => {
+    if (!selectedBarber) return;
+
+    const lat = selectedBarber.latitude;
+    const lng = selectedBarber.longitude;
+    const label = encodeURIComponent(selectedBarber.name);
+
+    let url = '';
+
+    if (Platform.OS === 'web') {
+      // Sur navigateur, on ouvre le site web de Google Maps avec l'itinéraire
+      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    } else if (Platform.OS === 'ios') {
+      // Sur iPhone, on lance Apple Maps
+      url = `maps://?daddr=${lat},${lng}&q=${label}`;
+    } else {
+      // Sur Android, on lance l'app Google Maps en mode navigation
+      url = `google.navigation:q=${lat},${lng}`;
+    }
+
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        // Sécurité de secours : si le téléphone n'a pas d'app GPS native, on force la version Web
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+      }
+    });
+  };
+
   return (
     <View style={styles.container}>
-      
-      {/* 1. La Carte avec la connexion des clics sans rechargement */}
       <Map 
         barbers={filteredBarbers} 
         centerLat={mapCenter?.lat || userLoc?.latitude} 
@@ -79,7 +101,6 @@ export const DiscoveryScreen = () => {
         onMarkerPress={handleMarkerPress}
       />
       
-      {/* 2. Barre de Recherche Flottante */}
       <View style={styles.topContainer}>
         <View style={styles.searchBar}>
           {isSearching ? (
@@ -100,7 +121,6 @@ export const DiscoveryScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* 3. Filtres Scrollables */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters}>
           {['Tous', 'Salons', 'À domicile', '⭐ 4.5+'].map((f) => (
             <TouchableOpacity 
@@ -114,7 +134,6 @@ export const DiscoveryScreen = () => {
         </ScrollView>
       </View>
 
-      {/* 4. Carte Info du Bas (Bottom Sheet) */}
       <View style={styles.bottomOverlay}>
         <GlassContainer>
           <MotiView 
@@ -141,7 +160,8 @@ export const DiscoveryScreen = () => {
                     {selectedBarber.isMobile ? "🚗 Se déplace chez vous" : "💈 Salon fixe"}
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.goBtn}>
+                {/* LE BOUTON EST MAINTENANT CONNECTÉ ICI 👇 */}
+                <TouchableOpacity style={styles.goBtn} onPress={handleNavigation}>
                   <Navigation color="#FFF" size={20} />
                 </TouchableOpacity>
               </View>
