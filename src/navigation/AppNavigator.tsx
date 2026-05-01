@@ -16,7 +16,7 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<DiscoveryStackParamList>();
-const RootStack = createNativeStackNavigator(); // Stack racine ultra-stable
+const RootStack = createNativeStackNavigator();
 
 const DiscoveryStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -59,7 +59,7 @@ const MainTabs = () => (
   </Tab.Navigator>
 );
 
-const Navigation = () => {
+const NavigationLogic = () => {
   const { user, loadingAuth } = useAuth();
 
   if (loadingAuth) {
@@ -73,10 +73,8 @@ const Navigation = () => {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
-        // Si pas de user, SEUL l'écran login existe dans le Stack. Focus garanti.
         <RootStack.Screen name="Login" component={LoginScreen} />
       ) : (
-        // Si user, on switch sur les Tabs.
         <RootStack.Screen name="Main" component={MainTabs} />
       )}
     </RootStack.Navigator>
@@ -86,7 +84,7 @@ const Navigation = () => {
 export const AppNavigator = () => (
   <AuthProvider>
     <NavigationContainer>
-      <Navigation />
+      <NavigationLogic />
     </NavigationContainer>
   </AuthProvider>
 );

@@ -1,35 +1,27 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { auth } from '../services/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { Scissors } from 'lucide-react-native'; 
 import { useAuth } from '../contexts/AuthContext';
 
-// Icône Google simple (SVG/Emoji pour éviter les imports lourds)
-const GoogleIcon = () => <Text style={{ fontSize: 18, marginRight: 10 }}>G</Text>;
-
 export const LoginScreen = () => {
   const { signInWithGoogle } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleAuth = async () => {
-    if (!email || !password || (!isLogin && !name)) {
-      setError('Champs manquants');
-      return;
-    }
+    if (!form.email || !form.password || (!isLogin && !form.name)) return setError('Champs requis');
     setLoading(true);
     setError('');
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, form.email, form.password);
       } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
+        const userCredential = await createUserWithEmailAndPassword(auth, form.email, form.password);
+        await updateProfile(userCredential.user, { displayName: form.name });
       }
     } catch (err: any) {
       setError('Erreur d\'identification');
@@ -39,67 +31,58 @@ export const LoginScreen = () => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}><Scissors color="#FFF" size={32} /></View>
-          <Text style={styles.title}>BarberGlass</Text>
-        </View>
-
-        <View style={styles.formContainer}>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-          {!isLogin && (
-            <TextInput
-              style={styles.input}
-              placeholder="Nom complet"
-              placeholderTextColor="#666"
-              value={name}
-              onChangeText={setName}
-            />
-          )}
-
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Mot de passe"
-            placeholderTextColor="#666"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          <TouchableOpacity style={styles.mainBtn} onPress={handleAuth} disabled={loading}>
-            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.mainBtnText}>{isLogin ? 'Connexion' : "S'inscrire"}</Text>}
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>OU</Text>
-            <View style={styles.line} />
-          </View>
-
-          <TouchableOpacity style={styles.googleBtn} onPress={() => signInWithGoogle()}>
-            <GoogleIcon />
-            <Text style={styles.googleBtnText}>Continuer avec Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switchBtn}>
-            <Text style={styles.switchBtnText}>
-              {isLogin ? "Créer un compte" : "Se connecter"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.logoContainer}>
+        <View style={styles.logoCircle}><Scissors color="#FFF" size={32} /></View>
+        <Text style={styles.title}>BarberGlass</Text>
       </View>
-    </TouchableWithoutFeedback>
+
+      <View style={styles.formContainer}>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        {!isLogin && (
+          <TextInput
+            style={styles.input}
+            placeholder="Nom complet"
+            placeholderTextColor="#666"
+            value={form.name}
+            onChangeText={(t) => setForm({...form, name: t})}
+          />
+        )}
+
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#666"
+          autoCapitalize="none"
+          value={form.email}
+          onChangeText={(t) => setForm({...form, email: t})}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Mot de passe"
+          placeholderTextColor="#666"
+          secureTextEntry
+          value={form.password}
+          onChangeText={(t) => setForm({...form, password: t})}
+        />
+
+        <TouchableOpacity style={styles.mainBtn} onPress={handleAuth} disabled={loading}>
+          {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.mainBtnText}>{isLogin ? 'Connexion' : "S'inscrire"}</Text>}
+        </TouchableOpacity>
+
+        <View style={styles.divider}><View style={styles.line} /><Text style={styles.orText}>OU</Text><View style={styles.line} /></View>
+
+        <TouchableOpacity style={styles.googleBtn} onPress={signInWithGoogle}>
+          <Text style={styles.googleBtnText}>G  Continuer avec Google</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switchBtn}>
+          <Text style={styles.switchBtnText}>{isLogin ? "Créer un compte" : "Se connecter"}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
@@ -115,7 +98,7 @@ const styles = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 25 },
   line: { flex: 1, height: 1, backgroundColor: '#222' },
   orText: { color: '#666', marginHorizontal: 15, fontSize: 12, fontWeight: '700' },
-  googleBtn: { backgroundColor: '#FFF', height: 55, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  googleBtn: { backgroundColor: '#FFF', height: 55, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   googleBtnText: { color: '#000', fontSize: 16, fontWeight: '700' },
   switchBtn: { marginTop: 25, alignItems: 'center' },
   switchBtnText: { color: '#888', fontSize: 14 },

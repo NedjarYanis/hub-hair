@@ -1,12 +1,12 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { auth } from '../services/firebase';
-import { onAuthStateChanged, User, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
   loadingAuth: boolean;
   logout: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>; // Nouvelle fonction
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
@@ -21,6 +21,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
+    // Vérifie si l'utilisateur revient d'une redirection Google réussie
+    getRedirectResult(auth).catch((error) => console.error("Erreur retour Google:", error));
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoadingAuth(false);
@@ -30,11 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Erreur Google Auth", error);
-    }
+    // Utilisation de la redirection au lieu du popup pour éviter le blocage COOP
+    await signInWithRedirect(auth, provider);
   };
 
   const logout = async () => {
