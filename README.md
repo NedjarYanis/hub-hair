@@ -2,14 +2,15 @@
 
 <div align="center">
   <img src="docs/images/barber_banner.jpg" alt="BarberGlass Banner" width="100%" style="border-radius: 8px;" />
-  <br/><br/>
-
-  [![React Native](https://img.shields.io/badge/React_Native-0.76-blue?logo=react&logoColor=white)](https://reactnative.dev/)
-  [![Expo](https://img.shields.io/badge/Expo-54.0-black?logo=expo&logoColor=white)](https://expo.dev/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-  [![Firebase](https://img.shields.io/badge/Firebase-Auth_%26_Firestore-orange?logo=firebase&logoColor=white)](https://firebase.google.com/)
-  [![Démo en ligne](https://img.shields.io/badge/D%C3%A9mo-Acc%C3%A9der_au_site-success)](https://nedjaryanis.github.io/hub-hair/)
 </div>
+
+<p align="center">
+  <a href="https://reactnative.dev"><img src="https://img.shields.io/badge/React_Native-0.76-blue?logo=react&logoColor=white" alt="React Native" /></a>
+  <a href="https://expo.dev"><img src="https://img.shields.io/badge/Expo-54.0-black?logo=expo&logoColor=white" alt="Expo" /></a>
+  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://firebase.google.com"><img src="https://img.shields.io/badge/Firebase-Auth_&_Firestore-orange?logo=firebase&logoColor=white" alt="Firebase" /></a>
+  <a href="https://nedjaryanis.github.io/hub-hair/"><img src="https://img.shields.io/badge/Démo_en_ligne-Accéder_au_site-success" alt="Démo" /></a>
+</p>
 
 <br/>
 
