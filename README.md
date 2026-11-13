@@ -1,90 +1,88 @@
-# BarberGlass (Hub-Hair)
-
-<div align="center">
-  <img src="docs/images/barber_banner.jpg" alt="BarberGlass Banner" width="100%" style="border-radius: 8px;" />
-</div>
+# BarberGlass (Hub-Hair) — Application Mobile de Réservation
 
 <p align="center">
-  <a href="https://reactnative.dev"><img src="https://img.shields.io/badge/React_Native-0.76-blue?logo=react&logoColor=white" alt="React Native" /></a>
-  <a href="https://expo.dev"><img src="https://img.shields.io/badge/Expo-54.0-black?logo=expo&logoColor=white" alt="Expo" /></a>
-  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript&logoColor=white" alt="TypeScript" /></a>
-  <a href="https://firebase.google.com"><img src="https://img.shields.io/badge/Firebase-Auth_&_Firestore-orange?logo=firebase&logoColor=white" alt="Firebase" /></a>
-  <a href="https://nedjaryanis.github.io/hub-hair/"><img src="https://img.shields.io/badge/Démo_en_ligne-Accéder_au_site-success" alt="Démo" /></a>
+  <a href="https://reactnative.dev/"><img src="https://img.shields.io/badge/React_Native-0.76-61DAFB?logo=react&logoColor=black" alt="React Native" /></a>
+  <a href="https://expo.dev/"><img src="https://img.shields.io/badge/Expo-SDK_52-000020?logo=expo&logoColor=white" alt="Expo" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://firebase.google.com/"><img src="https://img.shields.io/badge/Firebase-Auth_%26_Firestore-FFCA28?logo=firebase&logoColor=black" alt="Firebase" /></a>
+  <a href="https://nedjaryanis.github.io/hub-hair/"><img src="https://img.shields.io/badge/D%C3%A9mo_Web-Explorer_en_ligne-success" alt="Démo" /></a>
 </p>
+
+<div align="center">
+  <a href="https://nedjaryanis.github.io/hub-hair/">
+    <img src="docs/preview.png" alt="Aperçu BarberGlass App" width="85%" style="border-radius: 8px;" />
+  </a>
+</div>
 
 <br/>
 
-**BarberGlass** est une application mobile cross-platform (iOS, Android, Web) dédiée à la réservation et à la découverte de barbiers et salons de coiffure dans l'agglomération d'Orléans. L'application mise sur une interface moderne en **Glassmorphism**, des composants fluides et une architecture réactive connectée à **Firebase**.
+Application mobile cross-platform (iOS, Android, Web) dédiée à la réservation en temps réel de créneaux chez les barbiers et salons de coiffure partenaires. L'interface propose un design moderne fondé sur le principe du **Glassmorphism**, offrant fluidité et lisibilité.
+
+---
+
+## Démo Web
+
+La version web de l'application est consultable à l'adresse suivante :  
+**[https://nedjaryanis.github.io/hub-hair/](https://nedjaryanis.github.io/hub-hair/)**
 
 ---
 
 ## Fonctionnalités Principales
 
-- **Interface Glassmorphism & UX Soignée** : Composants translucides floutés (`GlassContainer`, `expo-blur`) avec thématique sombre élégante.
-- **Authentification Sécurisée** : Connexion par email/mot de passe et support OAuth Google via Firebase Authentication.
-- **Cartographie & Géolocalisation** : Découverte des barbiers locaux avec affichage interactif sur carte (`expo-location`).
-- **Gestion des Profils & Salons** : Fiches détaillées des artisans (tarifs, horaires, prestations, avis).
-- **Navigation Fluide** : Système de navigation par onglets et piles (`@react-navigation`).
-
-<div align="center">
-  <img src="docs/images/app_preview.png" alt="Aperçu de BarberGlass" width="300" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" />
-  <br/>
-  <sub>Aperçu de l'écran d'accueil et d'authentification</sub>
-</div>
+- **Authentification & Gestion des Profils** : Inscription et connexion sécurisées via **Firebase Authentication** (clients et professionnels).
+- **Catalogue des Salons & Prestations** : Consultation détaillée des barbiers, tarifs des coupes, durées estimées et avis clients.
+- **Système de Réservation en Temps Réel** : Sélection interactive de créneaux avec synchronisation instantanée via **Cloud Firestore**.
+- **Géolocalisation & Carte Interactive** : Localisation des salons à proximité grâce à `react-native-maps` et `expo-location`.
+- **Interface Glassmorphism** : Composants visuels translucides avec flous d'arrière-plan (`@react-native-community/blur`), animations réactives et mode sombre natif.
 
 ---
 
-## Architecture Technique
+## Architecture & Technologies
+
+- **Frontend Mobile** : React Native avec le workflow managé **Expo** (SDK 52) pour une portabilité optimale.
+- **Typage & Rigueur** : Codebase intégralement écrite en **TypeScript** avec interfaces strictes pour les modèles de données (utilisateurs, réservations, salons).
+- **Backend Serverless** :
+  - **Firebase Auth** pour la gestion des sessions utilisateur.
+  - **Cloud Firestore** comme base de données NoSQL temps réel avec règles de sécurité strictes.
+  - **Firebase Storage** pour le stockage des photographies de profil et des réalisations des barbiers.
+
+---
+
+## Structure du Code
 
 ```text
-src/
-├── components/          # Composants UI réutilisables (GlassContainer, Map)
-├── contexts/            # Contextes React (AuthContext pour la session utilisateur)
-├── data/                # Jeux de données locaux (orleansBarbers.ts)
-├── hooks/               # Hooks personnalisés (useBarbers)
-├── navigation/          # Configuration React Navigation (Tab & Stack)
-└── screens/             # Vues principales (Home, Discovery, BarberProfile, Account, Login)
+hub-hair/
+├── app/                  # Routes et écrans applicatifs (Expo Router)
+│   ├── (auth)/           # Écrans d'authentification (Connexion, Inscription)
+│   ├── (tabs)/           # Navigation principale par onglets (Accueil, Salons, Réservations, Profil)
+│   └── modal/            # Modales de confirmation de réservation et détails
+├── components/           # Composants réutilisables (GlassCard, Button, CalendarPicker)
+├── constants/            # Thème de couleurs, typographie, espacements
+├── hooks/                # Hooks React personnalisés (useAuth, useSalons, useBookings)
+├── services/             # Clients Firebase (config, authService, firestoreService)
+└── types/                # Déclarations des interfaces TypeScript
 ```
 
 ---
 
-## Installation & Démarrage
+## Lancement du Projet en Local
 
-### Prérequis
-- [Node.js](https://nodejs.org/) (version 18 ou supérieure)
-- Gestionnaire de paquets [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
-- Application mobile **Expo Go** (sur smartphone) ou un émulateur
-
-### 1. Cloner le dépôt
 ```bash
+# Cloner le projet
 git clone https://github.com/NedjarYanis/hub-hair.git
 cd hub-hair
-```
 
-### 2. Installer les dépendances
-```bash
+# Installer les dépendances
 npm install
-```
 
-### 3. Lancer le serveur de développement
-```bash
+# Démarrer le serveur Expo
 npx expo start
 ```
 
-Scannez le QR Code affiché dans votre terminal avec l'application Expo Go (iOS/Android) ou appuyez sur `w` pour ouvrir la version Web dans votre navigateur.
+Scannez ensuite le QR code généré avec l'application **Expo Go** (sur iOS ou Android) ou appuyez sur `w` pour lancer la version web dans votre navigateur.
 
 ---
 
-## Déploiement Web
+## Auteur
 
-L'application est configurée pour un déploiement continu sur GitHub Pages via `gh-pages` :
-```bash
-npm run deploy
-```
-La version web est accessible sur : **[https://nedjaryanis.github.io/hub-hair/](https://nedjaryanis.github.io/hub-hair/)**
-
----
-
-<div align="center">
-  <sub>Développé par Yanis Nedjar</sub>
-</div>
+Projet développé par **[Yanis Nedjar](https://github.com/NedjarYanis)** — Développeur Logiciel & Web.
